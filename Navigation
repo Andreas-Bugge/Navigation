@@ -3,6 +3,7 @@ import math
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 
+#Making a colision counter to see reducion in colision as we optimize
 Colisions = 0
 LINEAR_VEL = 0.05
 STOP_DISTANCE = 0.05

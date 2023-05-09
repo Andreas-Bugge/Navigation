@@ -40,15 +40,13 @@ left_distance = 0.05
 back_distance = 0.05
 right_distance = 0.05
 front_right_distance = 0.05
+speed_accumilation = 0.01
+speed_update = 0.01
 
 class Obstacle():
     def __init__(self):
         self._cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.obstacle()
-
-    # Makes a filter which sorts all our 0 out of the arrays.
-    def filter(arr):
-        return list(filter(lambda x: x!= 0, arr))
         
     # Turning turtlebot to the right
     def Turn_right (self,vel):
@@ -77,12 +75,28 @@ class Obstacle():
             turtlebot_moving = True
             rospy.loginfo('Backing!')
 
+    # Turning around in case of encirclement
+    def turning_around (self, vel):
+            twist = Twist()
+            twist.linear.x = 0.0
+            twist.angular.z = math.pi
+            self._cmd_pub.publish(twist)
+            turtlebot_moving = True
+            rospy.loginfo('Turning around!')
+
+
     def get_scan(self):
+        
         global front_left_distance
         global left_distance
         global back_distance
         global front_right_distance
         global right_distance
+
+        # Makes a filter which sorts all our 0 out of the arrays.
+        def filter_zero(arr):
+            return list(filter(lambda x: x!= 0, arr))
+        
         scan = rospy.wait_for_message('scan', LaserScan)
         scan_filter = []
        
@@ -99,11 +113,11 @@ class Obstacle():
 
         else:
             # scans the specific angles and measures the distances
-            samples_front_left = filter(scan.ranges[0 : 25])
-            samples_left = filter(scan.ranges[25 : 60])
-            samples_back = filter(scan.ranges[160 : 180])
-            samples_right = filter(scan.ranges[300 : 335])
-            samples_front_right = filter(scan.ranges[335 : 360])
+            samples_front_left = filter_zero(scan.ranges[0:25])
+            samples_left = filter_zero(scan.ranges[25:60])
+            samples_back = filter_zero(scan.ranges[160:180])
+            samples_right = filter_zero(scan.ranges[300:335])
+            samples_front_right = filter_zero(scan.ranges[335:360])
 
             # Looks for NaN/infinity numbers and sets them to base value of 3.5 meters
         for i in range(samples_view):
@@ -138,13 +152,15 @@ class Obstacle():
             lidar_distances = self.get_scan()
             min_distance = min(lidar_distances)
             print(min_distance)
-           
-           #if hhfdh:
+            global speed_accumilation
+            global speed_update
+            speed_update += 1
+            speed_accumilation += LINEAR_VEL
             #  self.Turn_to_right(0.8)
-            if front_left_distance > S and front_right_distance > SAFE_STOP_DISTANCE
-                turtlebot_moving = True
+          #  if front_left_distance > turning_distance and front_right_distance > SAFE_STOP_DISTANCE
+            turtlebot_moving = True
             
-            elif front_left_distance > SAFE_STOP_DISTANCE and front_right_distance > SAFE_STOP_DISTANCE
+           # elif front_left_distance > SAFE_STOP_DISTANCE and front_right_distance > SAFE_STOP_DISTANCE
 
             if min_distance < SAFE_STOP_DISTANCE:
                 if turtlebot_moving:
@@ -161,6 +177,10 @@ class Obstacle():
                 rospy.loginfo('Distance of the obstacle : %f', min_distance)
 
 def main():
+    global speed_accumilation
+    global speed_update
+    global colisions
+    average_speed = speed_accumilation/speed_update
     rospy.init_node('turtlebot3_obstacle')
     try:
         obstacle = Obstacle()
@@ -169,3 +189,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+print(sp)

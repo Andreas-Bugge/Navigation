@@ -3,48 +3,82 @@ import math
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 
-#Making a colision counter to see reducion in colision as we optimize
-Colisions = 0
+
 LINEAR_VEL = 0.05
 STOP_DISTANCE = 0.05
 LIDAR_ERROR = 0.05
 SAFE_STOP_DISTANCE = STOP_DISTANCE + LIDAR_ERROR
 
+# variables
+
+# colision counter to see reducion in colision as we optimize
+colisions = 0
+# victim counter to see the amount of victims 
+victims = 0 
+front_left_distance = 0.05
+left_distance = 0.05
+back_distance = 0.05
+right_distance = 0.05
+front_right_distance = 0.05
 
 class Obstacle():
     def __init__(self):
         self._cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.obstacle()
+
+    # Makes a filter which sorts all our 0 out of the arrays.
+    def filter(arr):
+        return list(filter(lambda x: x!= 0, arr))
         
     def get_scan(self):
+        global front_left_distance
+        global left_distance
+        global back_distance
+        global front_right_distance
+        global right_distance
         scan = rospy.wait_for_message('scan', LaserScan)
         scan_filter = []
        
         samples = len(scan.ranges)  # The number of samples is defined in 
                                     # turtlebot3_<model>.gazebo.xacro file,
                                     # the default is 360.
-        samples_view = 1            # 1 <= samples_view <= samples
+        samples_view = 5            # 1 <= samples_view <= samples
         
         if samples_view > samples:
             samples_view = samples
 
-        if samples_view is 1:
+        if samples_view is 360:
             scan_filter.append(scan.ranges[2])
 
         else:
-            left_lidar_samples_ranges = -(samples_view//2 + samples_view % 2)
-            right_lidar_samples_ranges = samples_view//2
-            
-            left_lidar_samples = scan.ranges[left_lidar_samples_ranges:]
-            right_lidar_samples = scan.ranges[:right_lidar_samples_ranges]
-            scan_filter.extend(left_lidar_samples + right_lidar_samples)
+            # scans the specific angles and measures the distances
+            samples_front_left = filter(scan.ranges[0 : 25])
+            samples_left = filter(scan.ranges[25 : 60])
+            samples_back = filter(scan.ranges[160 : 180])
+            samples_right = filter(scan.ranges[300 : 335])
+            samples_front_right = filter(scan.ranges[335 : 360])
 
+            # Looks for NaN/infinity numbers and sets them to base value of 3.5 meters
         for i in range(samples_view):
             if scan_filter[i] == float('Inf'):
                 scan_filter[i] = 3.5
+                print("no readings: Inf\n")
             elif math.isnan(scan_filter[i]):
-                scan_filter[i] = 0
-        
+                scan_filter[i] = 3.5
+                print("no readings: NaN\n")
+
+        # takes the minimum distance in the array and sets its as distance
+        front_left_distance = min(samples_front_left)
+        print("front left distance\n")
+        left_distance = min(samples_left)
+        print("lront distance\n")
+        back_distance = min(samples_back)
+        print("back distance\n")
+        front_right_distance = min(samples_front_right)
+        print("front right distance\n")
+        right_distance = min(samples_right)
+        print("right distance\n")
+
         return scan_filter
 
     def obstacle(self):

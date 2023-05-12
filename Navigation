@@ -106,8 +106,14 @@ class Obstacle():
         # Makes a filter which sorts all our 0 out of the arrays.
         def filter_zero(arr):
             for i in range(len(arr)):
-                 if arr[i] == 0:
+                if arr[i] == 0:
                       arr[i] = 3.5
+                elif arr[i] == float('Inf') or arr[i] == int('Inf'):
+                    scan_filter[i] = 3.5
+                    print("No readings: Inf\n")
+                elif math.isnan(arr[i]):
+                    scan_filter[i] = 2.5
+                print("No readings: NaN\n")
             return arr
         
         scan = rospy.wait_for_message('scan', LaserScan)
@@ -136,13 +142,13 @@ class Obstacle():
             samples_front_cone = filter_zero(scan.ranges[345:15])
             scan_filter.extend(samples_front_left+samples_left+samples_back+samples_right+samples_front_right+samples_front_cone)
             # Looks for NaN/infinity numbers and sets them to base value of 3.5 meters
-        #  for i in range(len(scan_filter)):
-         #   if scan_filter[i] == float('Inf') or scan_filter[i] == int('Inf'):
-          #      scan_filter[i] = 3.5
-           #     print("No readings: Inf\n")
-            #elif math.isnan(scan_filter[i]):
-             #   scan_filter[i] = 2.5
-              #  print("No readings: NaN\n")
+          for i in range(len(scan_filter)):
+            if scan_filter[i] == float('Inf') or scan_filter[i] == int('Inf'):
+                scan_filter[i] = 3.5
+                print("No readings: Inf\n")
+            elif math.isnan(scan_filter[i]):
+                scan_filter[i] = 2.5
+               print("No readings: NaN\n")
 
         # Takes the minimum distance in the array and sets its as distance
         Front_left_distance = min(samples_front_left)

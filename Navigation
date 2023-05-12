@@ -56,11 +56,20 @@ class Obstacle():
 
     # Functions
 
+    # Turtlebot is moving forward
+    def Forward (self,vel):
+            twist = Twist()
+            twist.linear.x = vel
+            twist.angular.z = 0.0
+            self._cmd_pub.publish(twist)
+            turtlebot_moving = True
+            rospy.loginfo('Moving forward!')
+
     # Turning turtlebot to the right
     def Turn_right (self,vel):
             twist = Twist()   
-            twist.linear.x = 0.0
-            twist.angular.z = -vel
+            twist.linear.x = LINEAR_VEL
+            twist.angular.z = vel
             self._cmd_pub.publish(twist)
             turtlebot_moving = True
             rospy.loginfo('Turning to right!')
@@ -68,8 +77,8 @@ class Obstacle():
     # Turning turtlebot to the left
     def Turn_left (self,vel):
             twist = Twist()   
-            twist.linear.x = 0.0
-            twist.angular.z = vel
+            twist.linear.x = LINEAR_VEL
+            twist.angular.z = -vel
             self._cmd_pub.publish(twist)
             turtlebot_moving = True
             rospy.loginfo('Turning to left!')
@@ -150,8 +159,10 @@ class Obstacle():
         return scan_filter
 
     def obstacle(self):
+
         twist = Twist()
         turtlebot_moving = True
+
         global Front_left_distance
         global Left_distance
         global Back_distance
@@ -176,9 +187,8 @@ class Obstacle():
             
                 # If the turtlebot is too close to an obstacle
                 if min_distance < SAFE_STOP_DISTANCE:
-                     # Stop and back up at -40 percent of the linear velocity
-                    twist.linear.x = -LINEAR_VEL * 0.4
-                    # Stop and aceess the obstacle
+                    # Stop and back up at -40 percent of the linear velocity
+                    self.Backing(0.4*LINEAR_VEL)
                     turtlebot_moving = False
                 
                 # If scans is within boundaries to turn while moving forward
@@ -189,24 +199,21 @@ class Obstacle():
                         # If the obstacle is to the left
                         if Front_left_distance > Front_right_distance:
                             # Turn to the right
-                            twist.linear.x = LINEAR_VEL
-                            twist.angular.z = -1
+                            self.Turn_right(0.4*LINEAR_VEL)
                         # If the obstacle is to the right
                         else:
                             # Turn to the left
-                            twist.linear.x = LINEAR_VEL
-                            twist.angular.z = 1
+                            self.Turn_left(0.4*LINEAR_VEL)
                     
                         turtlebot_moving = True
                     
-                    #  If there is a clear path ahead
+                    #  If there is a clear path ahead, move forward
                     else: 
-                        twist.linear.x = LINEAR_VEL
-                        twist.angular.z = 0.0
+                        self.Forward(LINEAR_VEL)
             
         # If the turtlebot is not moving forward, there's a obstacle in the way
             else:
-                twist.linear.x = -LINEAR_VEL * 0.4
+                self.Backing(0.4*LINEAR_VEL)
 
 def main():
     global Speed_accumilation
@@ -214,7 +221,7 @@ def main():
     global Colisions
 
     # Benchmarks
-    Average_speed = Speed_accumilation/Speed_update
+    #Average_speed = Speed_accumilation/Speed_update
 
 
 

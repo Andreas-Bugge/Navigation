@@ -105,10 +105,14 @@ class Obstacle():
 
         # Makes a filter which sorts all our 0 out of the arrays.
         def filter_zero(arr):
-            return list(filter(lambda x: x!= 0, arr))
+            for i in len(arr):
+                 if arr[i] == 0:
+                      arr[i] = 3.5
+            return arr
         
         scan = rospy.wait_for_message('scan', LaserScan)
         scan_filter = []
+    
        
         samples = len(scan.ranges)  # The number of samples is defined in 
                                     # turtlebot3_<model>.gazebo.xacro file,
@@ -123,6 +127,7 @@ class Obstacle():
 
         else:
             # Scans the specific angles and measures the distances
+            print(scan)
             samples_front_left = filter_zero(scan.ranges[0:25])
             samples_left = filter_zero(scan.ranges[25:60])
             samples_back = filter_zero(scan.ranges[160:180])

@@ -48,13 +48,9 @@ Front_right_distance = 0.05
 Front_distance = 0.5
 
 class Obstacle():
-
-    # 
     def __init__(self):
         self._cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.obstacle()
-
-    # Functions
 
     # Turtlebot is moving forward
     def Forward (self,vel):
@@ -62,7 +58,6 @@ class Obstacle():
             twist.linear.x = vel
             twist.angular.z = 0.0
             self._cmd_pub.publish(twist)
-            turtlebot_moving = True
             rospy.loginfo('Moving forward!')
 
     # Turning turtlebot to the right
@@ -71,7 +66,6 @@ class Obstacle():
             twist.linear.x = LINEAR_VEL
             twist.angular.z = vel
             self._cmd_pub.publish(twist)
-            turtlebot_moving = True
             rospy.loginfo('Turning to right!')
 
     # Turning turtlebot to the left
@@ -80,7 +74,6 @@ class Obstacle():
             twist.linear.x = LINEAR_VEL
             twist.angular.z = -vel
             self._cmd_pub.publish(twist)
-            turtlebot_moving = True
             rospy.loginfo('Turning to left!')
 
     # Turtlebot is backing up
@@ -89,7 +82,6 @@ class Obstacle():
             twist.linear.x = -speed
             twist.angular.z = 0.0
             self._cmd_pub.publish(twist)
-            turtlebot_moving = True
             rospy.loginfo('Backing!')
 
     # Turning around in case of encirclement
@@ -98,7 +90,6 @@ class Obstacle():
             twist.linear.x = 0.0
             twist.angular.z = math.pi
             self._cmd_pub.publish(twist)
-            turtlebot_moving = True
             rospy.loginfo('Turning around!')
 
 

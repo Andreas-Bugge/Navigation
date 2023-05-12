@@ -113,7 +113,7 @@ class Obstacle():
         samples = len(scan.ranges)  # The number of samples is defined in 
                                     # turtlebot3_<model>.gazebo.xacro file,
                                     # the default is 360.
-        samples_view = 5            # 1 <= samples_view <= samples
+        samples_view = 6            # 1 <= samples_view <= samples
         
         if samples_view > samples:
             samples_view = samples
@@ -129,14 +129,14 @@ class Obstacle():
             samples_right = filter_zero(scan.ranges[300:335])
             samples_front_right = filter_zero(scan.ranges[335:360])
             samples_front_cone = filter_zero(scan.ranges[345:15])
-
+            scan_filter.extend(samples_front_left+samples_left+samples_back+samples_right+samples_front_right+samples_front_cone)
             # Looks for NaN/infinity numbers and sets them to base value of 3.5 meters
         for i in range(len(scan_filter)):
             if scan_filter[i] == float('Inf') or scan_filter[i] == int('Inf'):
-                scan_filter[i] = 3.5
+                scan_filter[i] = 2.5
                 print("No readings: Inf\n")
             elif math.isnan(scan_filter[i]):
-                scan_filter[i] = 3.5
+                scan_filter[i] = 2.5
                 print("No readings: NaN\n")
 
         # Takes the minimum distance in the array and sets its as distance

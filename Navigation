@@ -16,6 +16,7 @@
 #################################################################################
 
 # Authors: Gilbert #
+# Co-authors: Andreas Bugge & Mathies Schou #
 
 import rospy
 import math
@@ -27,27 +28,34 @@ LINEAR_VEL = 0.22
 STOP_DISTANCE = 0.05
 LIDAR_ERROR = 0.05
 SAFE_STOP_DISTANCE = STOP_DISTANCE + LIDAR_ERROR
-turning_distance = 0.3
+TURNING_DISTANCE = 0.3
 
-# variables
+# Variables for benchmarks of runtime
+# Colision counter to see reducion in colision as we optimize
+Colisions = 0
+# Victim counter to see the amount of victims 
+Victims = 0
+# Speed benchmarks 
+Speed_accumilation = 0.01
+Speed_update = 0.01
 
-# colision counter to see reducion in colision as we optimize
-colisions = 0
-# victim counter to see the amount of victims 
-victims = 0 
-front_left_distance = 0.05
-left_distance = 0.05
-back_distance = 0.05
-right_distance = 0.05
-front_right_distance = 0.05
-speed_accumilation = 0.01
-speed_update = 0.01
+# Scane the cone area for distances to orient itself
+Front_left_distance = 0.05
+Left_distance = 0.05
+Back_distance = 0.05
+Right_distance = 0.05
+Front_right_distance = 0.05
+Front_distance = 0.5
 
 class Obstacle():
+
+    # 
     def __init__(self):
         self._cmd_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
         self.obstacle()
-        
+
+    # Functions
+
     # Turning turtlebot to the right
     def Turn_right (self,vel):
             twist = Twist()   
@@ -55,18 +63,18 @@ class Obstacle():
             twist.angular.z = -vel
             self._cmd_pub.publish(twist)
             turtlebot_moving = True
-            rospy.loginfo('turning!')
+            rospy.loginfo('Turning to right!')
 
     # Turning turtlebot to the left
     def Turn_left (self,vel):
             twist = Twist()   
             twist.linear.x = 0.0
-            twist.angular.z = -vel
+            twist.angular.z = vel
             self._cmd_pub.publish(twist)
             turtlebot_moving = True
-            rospy.loginfo('turning!')
+            rospy.loginfo('Turning to left!')
 
-    # Turtlebot is backingup
+    # Turtlebot is backing up
     def Backing (self,speed):
             twist = Twist()   
             twist.linear.x = -speed
@@ -87,11 +95,13 @@ class Obstacle():
 
     def get_scan(self):
         
-        global front_left_distance
-        global left_distance
-        global back_distance
-        global front_right_distance
-        global right_distance
+        # Global distances to make it possible for global variables to change
+        global Front_left_distance
+        global Left_distance
+        global Back_distance
+        global Front_right_distance
+        global Right_distance
+        global Front_distance
 
         # Makes a filter which sorts all our 0 out of the arrays.
         def filter_zero(arr):
@@ -108,79 +118,106 @@ class Obstacle():
         if samples_view > samples:
             samples_view = samples
 
-        if samples_view is 360:
-            scan_filter.append(scan.ranges[2])
+        if samples_view is 1:
+            scan_filter.append(scan.ranges[0])
 
         else:
-            # scans the specific angles and measures the distances
+            # Scans the specific angles and measures the distances
             samples_front_left = filter_zero(scan.ranges[0:25])
             samples_left = filter_zero(scan.ranges[25:60])
             samples_back = filter_zero(scan.ranges[160:180])
             samples_right = filter_zero(scan.ranges[300:335])
             samples_front_right = filter_zero(scan.ranges[335:360])
+            samples_front_cone = filter_zero(scan.ranges[345:15])
 
             # Looks for NaN/infinity numbers and sets them to base value of 3.5 meters
-        for i in range(samples_view):
-            if scan_filter[i] == float('Inf'):
+        for i in range(len(scan_filter)):
+            if scan_filter[i] == float('Inf') or scan_filter[i] == int('Inf'):
                 scan_filter[i] = 3.5
-                print("no readings: Inf\n")
+                print("No readings: Inf\n")
             elif math.isnan(scan_filter[i]):
                 scan_filter[i] = 3.5
-                print("no readings: NaN\n")
+                print("No readings: NaN\n")
 
-        # takes the minimum distance in the array and sets its as distance
-        front_left_distance = min(samples_front_left)
-        left_distance = min(samples_left)
-        back_distance = min(samples_back)
-        front_right_distance = min(samples_front_right)
-        right_distance = min(samples_right)
+        # Takes the minimum distance in the array and sets its as distance
+        Front_left_distance = min(samples_front_left)
+        Left_distance = min(samples_left)
+        Back_distance = min(samples_back)
+        Front_right_distance = min(samples_front_right)
+        Right_distance = min(samples_right)
+        Front_distance = min(samples_front_cone)
       
         return scan_filter
 
     def obstacle(self):
         twist = Twist()
         turtlebot_moving = True
-        global front_left_distance
-        global left_distance
-        global back_distance
-        global front_right_distance
-        global right_distance
-        global SAFE_STOP_DISTANCE
-        global turning_distance
+        global Front_left_distance
+        global Left_distance
+        global Back_distance
+        global Front_right_distance
+        global Right_distance
 
         while not rospy.is_shutdown():
             lidar_distances = self.get_scan()
             min_distance = min(lidar_distances)
             print(min_distance)
-            global speed_accumilation
-            global speed_update
-            speed_update += 1
-            speed_accumilation += LINEAR_VEL
-            #  self.Turn_to_right(0.8)
-          #  if front_left_distance > turning_distance and front_right_distance > SAFE_STOP_DISTANCE
+            global Speed_accumilation
+            global Speed_update
+            Speed_update += 1
+            Speed_accumilation += LINEAR_VEL
             turtlebot_moving = True
-            
-           # elif front_left_distance > SAFE_STOP_DISTANCE and front_right_distance > SAFE_STOP_DISTANCE
 
-            if min_distance < SAFE_STOP_DISTANCE:
-                if turtlebot_moving:
-                    twist.linear.x = 0.0
-                    twist.angular.z = 0.0
-                    self._cmd_pub.publish(twist)
+             # If the turtlebot is moving forward in any way shape or form 
+            if turtlebot_moving:
+                # Get the min distance from the lidar from the front cone
+                min_distance = Front_distance
+                print(min_distance)
+            
+                # If the turtlebot is too close to an obstacle
+                if min_distance < SAFE_STOP_DISTANCE:
+                     # Stop and back up at -40 percent of the linear velocity
+                    twist.linear.x = -LINEAR_VEL * 0.4
+                    # Stop and aceess the obstacle
                     turtlebot_moving = False
-                    rospy.loginfo('Stop!')
+                
+                # If scans is within boundaries to turn while moving forward
+                else:
+                    if min_distance < TURNING_DISTANCE:
+                    # Checking it the obstacle is right or left major
+
+                        # If the obstacle is to the left
+                        if Front_left_distance > Front_right_distance:
+                            # Turn to the right
+                            twist.linear.x = LINEAR_VEL
+                            twist.angular.z = -1
+                        # If the obstacle is to the right
+                        else:
+                            # Turn to the left
+                            twist.linear.x = LINEAR_VEL
+                            twist.angular.z = 1
+                    
+                        turtlebot_moving = True
+                    
+                    #  If there is a clear path ahead
+                    else: 
+                        twist.linear.x = LINEAR_VEL
+                        twist.angular.z = 0.0
+            
+        # If the turtlebot is not moving forward, there's a obstacle in the way
             else:
-                twist.linear.x = LINEAR_VEL
-                twist.angular.z = 0.0
-                self._cmd_pub.publish(twist)
-                turtlebot_moving = True
-                rospy.loginfo('Distance of the obstacle : %f', min_distance)
+                twist.linear.x = -LINEAR_VEL * 0.4
 
 def main():
-    global speed_accumilation
-    global speed_update
-    global colisions
-    average_speed = speed_accumilation/speed_update
+    global Speed_accumilation
+    global Speed_update
+    global Colisions
+
+    # Benchmarks
+    Average_speed = Speed_accumilation/Speed_update
+
+
+
     rospy.init_node('turtlebot3_obstacle')
     try:
         obstacle = Obstacle()
@@ -189,4 +226,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-print(sp)

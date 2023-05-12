@@ -133,7 +133,7 @@ class Obstacle():
             # Looks for NaN/infinity numbers and sets them to base value of 3.5 meters
         for i in range(len(scan_filter)):
             if scan_filter[i] == float('Inf') or scan_filter[i] == int('Inf'):
-                scan_filter[i] = 2.5
+                scan_filter[i] = 3.5
                 print("No readings: Inf\n")
             elif math.isnan(scan_filter[i]):
                 scan_filter[i] = 2.5
@@ -183,8 +183,7 @@ class Obstacle():
                     turtlebot_moving = False
                 
                 # If scans is within boundaries to turn while moving forward
-                else:
-                    if min_distance < TURNING_DISTANCE:
+                elif min_distance < TURNING_DISTANCE:
                     # Checking it the obstacle is right or left major
 
                         # If the obstacle is to the left
@@ -199,9 +198,8 @@ class Obstacle():
                         turtlebot_moving = True
                     
                     #  If there is a clear path ahead, move forward
-                    else: 
-                        self.Forward(LINEAR_VEL)
-            
+                else:
+                    turtlebot_moving = True
         # If the turtlebot is not moving forward, there's a obstacle in the way
             else:
                 self.Backing(0.4*LINEAR_VEL)
